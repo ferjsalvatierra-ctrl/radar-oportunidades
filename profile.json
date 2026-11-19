@@ -1,0 +1,103 @@
+{
+ "version": 2,
+ "name": "Fernando Javier Salvatierra",
+ "summary": "Especialista en IA, educación y políticas digitales con más de 20 años de experiencia. IIPE UNESCO América Latina y el Caribe desde 2011 (coordina IA, educación y políticas digitales desde 2019). Dirigió el Estudio Regional de Políticas Digitales en Educación (IIPE-UNICEF, 6 países). Coordina el Diplomado en Liderazgo de la IA en Educación (Observatorio UNESCO de IA y Educación, 33 ministerios) y el diplomado Talento Digital (ARTIE, UNESCO Santiago). Trabaja EFTP+IA. Profesor Adjunto Regular de Tecnología Educativa (UBA) e investigador UBACyT. Maestría en Tecnología Educativa (UC3M), especialización FLACSO, Lic. Ciencias de la Educación (UBA). Publicaciones con IIPE UNESCO y BID sobre gobernanza de la IA y políticas educativas. Español nativo, inglés avanzado. Reside en Buenos Aires. Además desarrolla con código: porta herramientas y plugins a Moodle, construye simuladores educativos y migra herramientas antiguas a tecnologías actuales, usando IA para programar.",
+ "strengths": [
+  "Gobernanza de la IA en educación",
+  "Políticas y planeamiento de educación digital",
+  "Desarrollo de capacidades de funcionarios de ministerios",
+  "Investigación regional comparada",
+  "EFTP e IA",
+  "Formación docente y educación superior",
+  "Diseño y coordinación académica de diplomados",
+  "Infraestructura, conectividad y brecha digital",
+  "Desarrollo y portabilidad de herramientas a Moodle",
+  "Simuladores educativos",
+  "Migración de herramientas antiguas",
+  "Prototipado con IA (HTML, plugins)"
+ ],
+ "keywords": {
+  "en": [
+   "artificial intelligence education",
+   "AI in education",
+   "AI governance education",
+   "digital education policy",
+   "EdTech consultant",
+   "digital learning",
+   "education technology policy",
+   "TVET artificial intelligence",
+   "teacher digital competencies",
+   "education planning digital transformation",
+   "AI readiness education",
+   "Moodle developer consultant",
+   "LMS integration education",
+   "educational simulation development"
+  ],
+  "es": [
+   "inteligencia artificial educación",
+   "IA en educación consultoría",
+   "políticas digitales educación",
+   "tecnología educativa consultor",
+   "transformación digital educativa",
+   "educación técnico profesional inteligencia artificial",
+   "competencias digitales docentes",
+   "gobernanza IA educación",
+   "consultor Moodle",
+   "desarrollo de plataformas educativas",
+   "simuladores educativos"
+  ]
+ },
+ "regions": [
+  "América Latina",
+  "Latin America",
+  "LAC",
+  "Caribe",
+  "Caribbean",
+  "Argentina",
+  "Uruguay",
+  "Chile",
+  "México",
+  "Colombia",
+  "Remote",
+  "Home-based",
+  "Remoto",
+  "Global"
+ ],
+ "exclude": [
+  "intern",
+  "internship",
+  "pasantía",
+  "volunteer",
+  "voluntario",
+  "JPO",
+  "junior",
+  "driver",
+  "finance assistant",
+  "procurement assistant"
+ ],
+ "minDailyRateUSD": 450,
+ "targetDailyRateUSD": 650,
+ "weights": {
+  "tema": 35,
+  "nivel": 20,
+  "region": 15,
+  "modalidad": 10,
+  "pago": 10,
+  "plazo": 10
+ },
+ "conflictOrgs": [
+  "IIPE",
+  "IIEP",
+  "UNESCO"
+ ],
+ "scoring": {
+  "tema": "35 si el núcleo es IA/educación digital/políticas digitales/EdTech; 30 si es desarrollo o migración de plataformas educativas (Moodle, LMS, simuladores) con componente pedagógico; 25 si es planeamiento, formación docente, EFTP o educación superior con componente digital; 10 si es educación general; 0 fuera de educación.",
+  "nivel": "20 si es senior/lead/experto principal, P-4/P-5, consultoría nivel C-D o Level 3; 12 si es P-3 o nivel B alto; 0 si es junior, pasantía o asistente.",
+  "region": "15 si es LAC, en español o remoto; 10 si es global sin restricción; 5 si es en otra región con viaje; 0 si exige nacionalidad o residencia que no tiene.",
+  "modalidad": "10 si es consultoría por producto, LTA o remota; 6 si es contrato temporal; 3 si es puesto fijo a tiempo completo con mudanza.",
+  "pago": "10 si la tarifa publicada es ≥ USD 650/día o nivel P-4+; 7 si es ≥ USD 450/día; 4 si no se publica; 0 si es < USD 450/día.",
+  "plazo": "10 si cierra en más de 14 días o es abierta; 6 si cierra en 7-14 días; 2 si cierra en menos de 7 días; 0 si ya cerró.",
+  "prioridad": "Alta ≥ 75, Media 55-74, Baja < 55. Si cierra en menos de 7 días se marca urgente.",
+  "alertas": "Marcar 'incompatibilidad' si el contratante es IIPE/UNESCO u otro organismo con el que trabaja; 'idioma' si exige francés o portugués fluido; 'doctorado' si exige PhD."
+ }
+}

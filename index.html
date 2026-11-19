@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Radar de oportunidades</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Layout: header con estado del escaneo + indicadores, pestañas, lista densa de oportunidades con puntaje a la izquierda */
+:root{
+  --bg:#f4f6f7; --surface:#ffffff; --ink:#15232b; --muted:#5b6b74; --line:#dde3e6;
+  --accent:#0e6b73; --accent-soft:#dcefee;
+  --hi:#17794a; --hi-soft:#ddf2e6; --mid:#a8670a; --mid-soft:#fbecd2; --lo:#7b8a93; --lo-soft:#eceff1;
+  --warn:#b4322b; --warn-soft:#f9e1df;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Public Sans", "Segoe UI", system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f171b; --surface:#16222a; --ink:#e4ecef; --muted:#93a4ad; --line:#26353e;
+    --accent:#4fc0c3; --accent-soft:#17383c;
+    --hi:#5fd197; --hi-soft:#173a2a; --mid:#f0b452; --mid-soft:#3b2d14; --lo:#8f9ea6; --lo-soft:#212e35;
+    --warn:#f2847c; --warn-soft:#3d1f1d; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f171b; --surface:#16222a; --ink:#e4ecef; --muted:#93a4ad; --line:#26353e;
+  --accent:#4fc0c3; --accent-soft:#17383c;
+  --hi:#5fd197; --hi-soft:#173a2a; --mid:#f0b452; --mid-soft:#3b2d14; --lo:#8f9ea6; --lo-soft:#212e35;
+  --warn:#f2847c; --warn-soft:#3d1f1d; color-scheme: dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--body);}
+a{color:var(--accent)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 20px 60px}
+header.top{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between;margin-bottom:16px}
+h1{font:700 28px/1.1 var(--display);margin:0;text-wrap:balance}
+.sub{color:var(--muted);font-size:13px;margin-top:4px}
+.scan{display:flex;flex-wrap:wrap;gap:8px;font-size:12.5px;color:var(--muted)}
+.scan span{background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:3px 10px}
+.scan b{color:var(--ink);font-weight:600}
+.stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:16px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 14px;cursor:pointer;text-align:left}
+.stat:hover{border-color:var(--accent)}
+.stat .n{font:700 26px/1 var(--display);font-variant-numeric:tabular-nums}
+.stat .l{font-size:12.5px;color:var(--muted)}
+.stat.hi .n{color:var(--hi)} .stat.warn .n{color:var(--warn)}
+nav.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:16px;overflow-x:auto}
+nav.tabs a{padding:9px 14px;text-decoration:none;color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap;font-weight:500}
+nav.tabs a[aria-current="page"]{color:var(--ink);border-color:var(--accent)}
+.view{display:none}.view.on{display:block}
+.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.filters input[type=search]{flex:1 1 220px;min-width:180px;padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+.filters select{padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 12px;font-size:13px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.check{font-size:13px;color:var(--muted);display:flex;gap:6px;align-items:center}
+.list{display:flex;flex-direction:column;gap:8px}
+.opp{display:grid;grid-template-columns:62px 1fr auto;gap:14px;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--lo);border-radius:10px;padding:12px 14px}
+.opp.p-alta{border-left-color:var(--hi)} .opp.p-media{border-left-color:var(--mid)}
+.score{width:54px;height:54px;border-radius:50%;display:grid;place-items:center;font:700 19px var(--display);font-variant-numeric:tabular-nums;background:var(--lo-soft);color:var(--lo)}
+.p-alta .score{background:var(--hi-soft);color:var(--hi)} .p-media .score{background:var(--mid-soft);color:var(--mid)}
+.opp h3{margin:0;font:600 16px/1.3 var(--body)}
+.opp h3 a{color:var(--ink);text-decoration:none} .opp h3 a:hover{text-decoration:underline}
+.meta{font-size:13px;color:var(--muted);margin-top:2px}
+.tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+.tag{font-size:12px;padding:2px 8px;border-radius:6px;background:var(--lo-soft);color:var(--ink)}
+.tag.cat{background:var(--accent-soft);color:var(--accent)}
+.tag.warn{background:var(--warn-soft);color:var(--warn)}
+.tag.mid{background:var(--mid-soft);color:var(--mid)}
+.why{font-size:13.5px;margin-top:7px;max-width:72ch}
+.bd{display:flex;gap:3px;margin-top:8px;flex-wrap:wrap}
+.bd span{font-size:11px;color:var(--muted);background:var(--bg);border-radius:4px;padding:1px 6px;font-variant-numeric:tabular-nums}
+.side{display:flex;flex-direction:column;gap:6px;align-items:flex-end;min-width:150px}
+.side select{padding:5px 8px;border:1px solid var(--line);border-radius:7px;background:var(--surface);font-size:13px;width:150px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:7px 14px;border-radius:8px;border:1px solid var(--accent);background:var(--accent);color:#fff;font-weight:600;font-size:13.5px;cursor:pointer;text-decoration:none}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.empty{background:var(--surface);border:1px dashed var(--line);border-radius:10px;padding:28px;text-align:center;color:var(--muted)}
+.note{font-size:13px;color:var(--muted)}
+.banner{background:var(--mid-soft);color:var(--ink);border-radius:8px;padding:10px 14px;font-size:13.5px;margin-bottom:12px;display:none}
+.banner.on{display:block}
+/* fuentes */
+.srcgroup{margin-bottom:22px}
+.srcgroup h2,.panel h2{font:700 18px var(--display);margin:0 0 10px}
+.srcgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:8px}
+.src{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:11px 13px;display:flex;flex-direction:column;gap:6px}
+.src.off{opacity:.6}
+.src .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.src .nm{font-weight:600}
+.src .why{margin:0;font-size:13px;color:var(--muted)}
+.src .acts{display:flex;gap:6px;flex-wrap:wrap}
+.src .acts a{font-size:12.5px}
+.via{font-size:11px;padding:1px 7px;border-radius:5px;background:var(--lo-soft)}
+.via.chrome{background:var(--accent-soft);color:var(--accent)}
+.switch{display:flex;gap:6px;align-items:center;font-size:12.5px;color:var(--muted);cursor:pointer}
+/* paneles */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;margin-bottom:14px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+label.f{display:block;font-size:13px;font-weight:600;margin:10px 0 4px}
+.panel input[type=text],.panel input[type=url],.panel input[type=number],.panel textarea,.panel select{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+.panel textarea{min-height:110px;resize:vertical}
+.weights{display:flex;flex-direction:column;gap:6px}
+.w{display:grid;grid-template-columns:90px 1fr 34px;gap:8px;align-items:center;font-size:13px}
+.w .bar{height:8px;border-radius:4px;background:var(--bg);overflow:hidden}
+.w .bar i{display:block;height:100%;background:var(--accent)}
+.rules{font-size:13.5px;margin:0;padding-left:18px}
+.rules li{margin-bottom:5px}
+.result{margin-top:14px;border-top:1px solid var(--line);padding-top:14px}
+.pre{white-space:pre-wrap;background:var(--bg);border-radius:8px;padding:12px;font-size:13.5px}
+/* seguimiento */
+.board{display:grid;grid-template-columns:repeat(6,minmax(170px,1fr));gap:10px;overflow-x:auto}
+.col{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px;min-height:120px}
+.col h3{font:600 13px var(--body);margin:0 0 8px;color:var(--muted);display:flex;justify-content:space-between}
+.card{border:1px solid var(--line);border-radius:8px;padding:8px;margin-bottom:6px;font-size:13px;background:var(--bg)}
+.card a{color:var(--ink);font-weight:600;text-decoration:none}
+@media (max-width:820px){
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .opp{grid-template-columns:48px 1fr}
+  .score{width:44px;height:44px;font-size:16px}
+  .side{grid-column:1/-1;flex-direction:row;align-items:center;justify-content:flex-start;flex-wrap:wrap}
+  .two{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:no-preference){.opp{transition:border-color .15s}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Radar de oportunidades</h1>
+      <div class="sub">Consultorías, empleos, convocatorias y conferencias para el perfil de Fernando Salvatierra · IA, educación y políticas digitales</div>
+    </div>
+    <div class="scan" id="scan"><span>Conectando con la base de datos…</span></div>
+  </header>
+
+  <div class="banner" id="banner"></div>
+
+  <section class="stats" id="stats" aria-label="Resumen"></section>
+
+  <nav class="tabs" aria-label="Secciones">
+    <a href="#radar" data-v="radar">Radar</a>
+    <a href="#seguimiento" data-v="seguimiento">Seguimiento</a>
+    <a href="#agregar" data-v="agregar">Agregar y analizar</a>
+    <a href="#fuentes" data-v="fuentes">Fuentes</a>
+    <a href="#perfil" data-v="perfil">Perfil y lógica</a>
+  </nav>
+
+  <!-- RADAR -->
+  <section class="view" id="v-radar">
+    <div class="filters">
+      <input type="search" id="q" placeholder="Buscar por título, organismo o tema" aria-label="Buscar">
+      <select id="sort" aria-label="Ordenar">
+        <option value="score">Mayor afinidad</option>
+        <option value="deadline">Cierra antes</option>
+        <option value="found">Más recientes</option>
+      </select>
+      <select id="prio" aria-label="Prioridad">
+        <option value="all">Toda prioridad</option>
+        <option value="alta">Alta</option>
+        <option value="media">Media</option>
+        <option value="baja">Baja</option>
+      </select>
+      <select id="fstatus" aria-label="Estado">
+        <option value="all">Todo estado</option>
+        <option value="pend">Sin descartar</option>
+        <option value="nuevo">Nuevo</option>
+        <option value="interesa">Me interesa</option>
+        <option value="preparando">Preparando</option>
+        <option value="enviada">Enviada</option>
+        <option value="entrevista">Entrevista</option>
+        <option value="ganada">Ganada</option>
+        <option value="descartada">Descartada</option>
+      </select>
+      <label class="check"><input type="checkbox" id="closed"> Mostrar cerradas</label>
+    </div>
+    <div class="filters"><div class="chips" id="catchips"></div></div>
+    <div class="list" id="list"></div>
+  </section>
+
+  <!-- SEGUIMIENTO -->
+  <section class="view" id="v-seguimiento">
+    <p class="note">Las oportunidades que marcás con un estado aparecen acá. El estado es privado: solo lo ves vos.</p>
+    <div class="board" id="board"></div>
+  </section>
+
+  <!-- AGREGAR -->
+  <section class="view" id="v-agregar">
+    <div class="panel">
+      <h2>Agregar una oportunidad a mano</h2>
+      <p class="note">Pegá el link y el texto de los términos de referencia o del aviso (de LinkedIn, un mail, una web). Claude lo puntúa con tu rúbrica, sugiere una tarifa y arma un borrador de presentación. Después podés guardarla en el radar.</p>
+      <label class="f" for="mUrl">Link del aviso</label>
+      <input type="url" id="mUrl" placeholder="https://…">
+      <label class="f" for="mText">Texto del aviso o TdR</label>
+      <textarea id="mText" placeholder="Pegá acá el texto completo"></textarea>
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+        <button class="btn" id="mGo">Analizar con Claude</button>
+        <button class="btn ghost" id="mSave" disabled>Guardar en el radar</button>
+      </div>
+      <p class="note" id="mStatus"></p>
+      <div class="result" id="mOut" hidden></div>
+    </div>
+  </section>
+
+  <!-- FUENTES -->
+  <section class="view" id="v-fuentes">
+    <p class="note">Las fuentes activas se recorren en cada escaneo automático. Las marcadas <span class="via chrome">Chrome</span> necesitan tu sesión y las revisa el escaneo que corre en tu computadora. Cada fuente tiene además una búsqueda manual armada con tus palabras clave.</p>
+    <div id="srcs"></div>
+  </section>
+
+  <!-- PERFIL -->
+  <section class="view" id="v-perfil">
+    <div class="two">
+      <div class="panel">
+        <h2>Cómo se calcula la afinidad</h2>
+        <div class="weights" id="weights"></div>
+        <ul class="rules" id="rules" style="margin-top:14px"></ul>
+      </div>
+      <div class="panel">
+        <h2>Palabras clave y filtros</h2>
+        <p class="note">Los escaneos automáticos usan estas listas. Una por línea.</p>
+        <label class="f" for="kwEs">Búsquedas en español</label>
+        <textarea id="kwEs"></textarea>
+        <label class="f" for="kwEn">Búsquedas en inglés</label>
+        <textarea id="kwEn"></textarea>
+        <label class="f" for="kwEx">Excluir si el aviso contiene</label>
+        <textarea id="kwEx" style="min-height:70px"></textarea>
+        <div class="two">
+          <div><label class="f" for="rMin">Tarifa mínima (USD/día)</label><input type="number" id="rMin" min="0" step="10"></div>
+          <div><label class="f" for="rTgt">Tarifa objetivo (USD/día)</label><input type="number" id="rTgt" min="0" step="10"></div>
+        </div>
+        <div style="margin-top:12px;display:flex;gap:8px;align-items:center"><button class="btn" id="pSave">Guardar cambios</button><span class="note" id="pStatus"></span></div>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>Perfil que usa el puntaje</h2>
+      <p id="pSummary" class="why" style="max-width:none"></p>
+      <div class="tags" id="pStrengths"></div>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+const CATS={empleo:"Empleo",consultoria:"Consultoría",investigacion:"Investigación y fondos",conferencia:"Conferencias y CFP",agregador:"Agregadores"};
+const STATUSES=[["nuevo","Nuevo"],["interesa","Me interesa"],["preparando","Preparando"],["enviada","Enviada"],["entrevista","Entrevista"],["ganada","Ganada"],["descartada","Descartada"]];
+const S={db:null,uid:null,sample:null,opps:[],sources:[],profile:null,scan:null,tracker:{},canWrite:true,
+  f:{q:"",cat:"all",prio:"all",sort:"score",status:"pend",closed:false},draft:null};
+
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const safeUrl=u=>{try{const x=new URL(u);return /^https?:$/.test(x.protocol)?x.href:"#"}catch(e){return "#"}};
+const today=()=>{const d=new Date();d.setHours(0,0,0,0);return d};
+function daysLeft(dl){if(!dl)return null;const d=new Date(dl+"T00:00:00");if(isNaN(d))return null;return Math.round((d-today())/86400000)}
+function prio(score){return score>=75?"alta":score>=55?"media":"baja"}
+function fmtDate(iso){if(!iso)return "—";const d=new Date(iso);if(isNaN(d))return esc(iso);return d.toLocaleDateString("es-AR",{day:"numeric",month:"short"})+" "+d.toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"})}
+function statusOf(id){return (S.tracker[id]&&S.tracker[id].status)||"nuevo"}
+function banner(msg){const b=$("banner");if(!msg){b.classList.remove("on");return}b.textContent=msg;b.classList.add("on")}
+function hash(str){let h=5381;for(let i=0;i<str.length;i++)h=((h<<5)+h+str.charCodeAt(i))>>>0;return "m"+h.toString(36)}
+
+/* ---------- routing ---------- */
+const VIEWS=["radar","seguimiento","agregar","fuentes","perfil"];
+function route(){const v=VIEWS.includes(location.hash.slice(1))?location.hash.slice(1):"radar";
+  VIEWS.forEach(x=>$("v-"+x).classList.toggle("on",x===v));
+  document.querySelectorAll("nav.tabs a").forEach(a=>a.toggleAttribute("aria-current",a.dataset.v===v)||a.dataset.v===v&&a.setAttribute("aria-current","page"));}
+window.addEventListener("hashchange",route);
+
+/* ---------- render ---------- */
+function filtered(){
+  const q=S.f.q.trim().toLowerCase();
+  let r=S.opps.filter(o=>{
+    const dl=daysLeft(o.deadline);
+    if(!S.f.closed&&dl!==null&&dl<0)return false;
+    if(S.f.cat!=="all"&&o.cat!==S.f.cat)return false;
+    if(S.f.prio!=="all"&&prio(o.score||0)!==S.f.prio)return false;
+    const st=statusOf(o.id);
+    if(S.f.status==="pend"&&st==="descartada")return false;
+    if(S.f.status!=="all"&&S.f.status!=="pend"&&st!==S.f.status)return false;
+    if(q&&![o.title,o.org,o.summary,o.source,(o.keywords||[]).join(" ")].join(" ").toLowerCase().includes(q))return false;
+    return true});
+  const s=S.f.sort;
+  r.sort((a,b)=>{
+    if(s==="deadline"){const x=daysLeft(a.deadline),y=daysLeft(b.deadline);return (x===null?9999:x)-(y===null?9999:y)}
+    if(s==="found")return String(b.foundAt||"").localeCompare(String(a.foundAt||""));
+    return (b.score||0)-(a.score||0)});
+  return r;
+}
+function renderStats(){
+  const live=S.opps.filter(o=>{const d=daysLeft(o.deadline);return d===null||d>=0});
+  const week=Date.now()-7*86400000;
+  const n={total:live.length,alta:live.filter(o=>prio(o.score||0)==="alta").length,
+    urg:live.filter(o=>{const d=daysLeft(o.deadline);return d!==null&&d<7&&statusOf(o.id)!=="descartada"}).length,
+    nuevas:live.filter(o=>o.foundAt&&new Date(o.foundAt).getTime()>week).length,
+    seg:Object.values(S.tracker).filter(t=>t.status&&!["nuevo","descartada"].includes(t.status)).length};
+  $("stats").innerHTML=[
+    ["total","Abiertas en el radar","",()=>{setF({prio:"all",sort:"score"})}],
+    ["alta","Prioridad alta","hi",()=>setF({prio:"alta"})],
+    ["urg","Cierran en menos de 7 días","warn",()=>setF({sort:"deadline",prio:"all"})],
+    ["nuevas","Nuevas esta semana","",()=>setF({sort:"found"})],
+    ["seg","En seguimiento","",()=>{location.hash="#seguimiento"}]
+  ].map((x,i)=>`<button class="stat ${x[2]}" data-i="${i}"><div class="n">${n[x[0]]}</div><div class="l">${x[1]}</div></button>`).join("");
+  const acts=[()=>setF({prio:"all",sort:"score"}),()=>setF({prio:"alta"}),()=>setF({sort:"deadline",prio:"all"}),()=>setF({sort:"found"}),()=>{location.hash="#seguimiento"}];
+  $("stats").querySelectorAll(".stat").forEach(b=>b.onclick=()=>{acts[+b.dataset.i]();});
+}
+function setF(p){Object.assign(S.f,p);$("prio").value=S.f.prio;$("sort").value=S.f.sort;location.hash="#radar";renderList()}
+function renderCats(){
+  const counts={};S.opps.forEach(o=>counts[o.cat]=(counts[o.cat]||0)+1);
+  const items=[["all","Todo"]].concat(Object.entries(CATS).filter(([k])=>k!=="agregador"));
+  $("catchips").innerHTML=items.map(([k,l])=>`<button class="chip" data-c="${k}" aria-pressed="${S.f.cat===k}">${l}${k!=="all"&&counts[k]?" · "+counts[k]:""}</button>`).join("");
+  $("catchips").querySelectorAll(".chip").forEach(b=>b.onclick=()=>{S.f.cat=b.dataset.c;renderCats();renderList()});
+}
+function deadlineTag(o){const d=daysLeft(o.deadline);
+  if(d===null)return `<span class="tag">Sin fecha de cierre</span>`;
+  if(d<0)return `<span class="tag">Cerró el ${esc(o.deadline)}</span>`;
+  if(d<7)return `<span class="tag warn">Cierra en ${d} día${d===1?"":"s"} · ${esc(o.deadline)}</span>`;
+  if(d<=14)return `<span class="tag mid">Cierra en ${d} días · ${esc(o.deadline)}</span>`;
+  return `<span class="tag">Cierra ${esc(o.deadline)} · ${d} días</span>`;}
+const BD=[["tema","Tema"],["nivel","Nivel"],["region","Región"],["modalidad","Modalidad"],["pago","Pago"],["plazo","Plazo"]];
+function oppHTML(o){
+  const p=prio(o.score||0),st=statusOf(o.id);
+  const flags=(o.flags||[]).map(f=>`<span class="tag warn">${esc(f)}</span>`).join("");
+  const bd=o.breakdown?`<div class="bd">${BD.map(([k,l])=>o.breakdown[k]!=null?`<span>${l} ${esc(o.breakdown[k])}</span>`:"").join("")}</div>`:"";
+  return `<article class="opp p-${p}">
+    <div class="score" title="Afinidad ${esc(o.score)} de 100 · prioridad ${p}">${esc(o.score??"–")}</div>
+    <div>
+      <h3><a href="${safeUrl(o.url)}" target="_blank" rel="noopener">${esc(o.title)}</a></h3>
+      <div class="meta">${esc(o.org||"")}${o.location?" · "+esc(o.location):""}${o.source?" · vía "+esc(o.source):""}</div>
+      <div class="tags"><span class="tag cat">${esc(CATS[o.cat]||o.cat)}</span>${o.modality?`<span class="tag">${esc(o.modality)}</span>`:""}${o.rate?`<span class="tag">${esc(o.rate)}</span>`:""}${o.lang?`<span class="tag">${esc(o.lang)}</span>`:""}${deadlineTag(o)}${flags}</div>
+      ${o.reasons?`<div class="why">${esc(o.reasons)}</div>`:""}
+      ${bd}
+    </div>
+    <div class="side">
+      <select data-id="${esc(o.id)}" aria-label="Estado de ${esc(o.title)}">${STATUSES.map(([k,l])=>`<option value="${k}"${k===st?" selected":""}>${l}</option>`).join("")}</select>
+      <a class="btn ghost" href="${safeUrl(o.url)}" target="_blank" rel="noopener">Abrir aviso</a>
+      <span class="note">Visto ${o.foundAt?esc(new Date(o.foundAt).toLocaleDateString("es-AR")):"—"}</span>
+    </div></article>`;}
+function renderList(){
+  const r=filtered();
+  if(!S.db){$("list").innerHTML=`<div class="empty">No se pudo abrir la base de datos en esta vista. Abrí la herramienta desde claude.ai con tu sesión iniciada.</div>`;return}
+  if(!S.opps.length){$("list").innerHTML=`<div class="empty">Todavía no hay oportunidades cargadas. El primer escaneo automático las va a traer; también podés agregar una en <a href="#agregar">Agregar y analizar</a>.</div>`;return}
+  $("list").innerHTML=r.length?r.map(oppHTML).join(""):`<div class="empty">Ninguna oportunidad coincide con estos filtros.</div>`;
+  $("list").querySelectorAll("select[data-id]").forEach(s=>s.onchange=()=>setStatus(s.dataset.id,s.value));
+}
+function renderBoard(){
+  const cols=STATUSES.filter(([k])=>k!=="nuevo");
+  const byId=Object.fromEntries(S.opps.map(o=>[o.id,o]));
+  $("board").innerHTML=cols.map(([k,l])=>{
+    const items=Object.entries(S.tracker).filter(([id,t])=>t.status===k&&byId[id]);
+    return `<div class="col"><h3><span>${l}</span><span>${items.length}</span></h3>${items.map(([id])=>{const o=byId[id];
+      return `<div class="card"><a href="${safeUrl(o.url)}" target="_blank" rel="noopener">${esc(o.title)}</a><div class="note">${esc(o.org||"")} · ${esc(o.score)} pts</div><div class="note">${o.deadline?"Cierra "+esc(o.deadline):"Sin fecha"}</div>
+      <select data-id="${esc(id)}" aria-label="Estado" style="width:100%;margin-top:4px;padding:3px;border:1px solid var(--line);border-radius:6px;background:var(--surface);font-size:12px">${STATUSES.map(([s,sl])=>`<option value="${s}"${s===k?" selected":""}>${sl}</option>`).join("")}</select></div>`}).join("")||`<div class="note">Nada todavía</div>`}</div>`}).join("");
+  $("board").querySelectorAll("select[data-id]").forEach(s=>s.onchange=()=>setStatus(s.dataset.id,s.value));
+}
+function kwFor(lang){const p=S.profile||{};const k=(p.keywords&&p.keywords[lang==="es"?"es":"en"])||[];return k.slice(0,4)}
+function searchUrl(s){
+  if(s.id==="linkedin"){const k=kwFor("en")[0]||"AI education";return "https://www.linkedin.com/jobs/search/?keywords="+encodeURIComponent(k)+"&f_TPR=r604800"}
+  if(s.id==="googlejobs"||!s.site){const k=kwFor(s.lang)[0]||"AI education";return "https://www.google.com/search?ibp=htl;jobs&q="+encodeURIComponent(k)}
+  const k=kwFor(s.lang).map(x=>'"'+x+'"').join(" OR ");
+  return "https://www.google.com/search?tbs=qdr:m&q="+encodeURIComponent("site:"+s.site+" ("+k+")");
+}
+function renderSources(){
+  if(!S.sources.length){$("srcs").innerHTML=`<div class="empty">El catálogo de fuentes todavía no está cargado.</div>`;return}
+  $("srcs").innerHTML=Object.entries(CATS).map(([c,l])=>{const items=S.sources.filter(s=>s.cat===c);if(!items.length)return "";
+    return `<div class="srcgroup"><h2>${l} <span class="note">${items.filter(s=>s.on).length} de ${items.length} activas</span></h2><div class="srcgrid">${items.map(s=>`
+      <div class="src${s.on?"":" off"}"><div class="row"><span class="nm">${esc(s.name)}</span><span class="via ${s.via==="chrome"?"chrome":""}">${s.via==="chrome"?"Chrome":"Web"}</span></div>
+      <p class="why">${esc(s.why||"")}</p>
+      <div class="row"><div class="acts"><a href="${safeUrl(s.url)}" target="_blank" rel="noopener">Abrir sitio</a><a href="${safeUrl(searchUrl(s))}" target="_blank" rel="noopener">Buscar ahora</a></div>
+      <label class="switch"><input type="checkbox" data-src="${esc(s.id)}"${s.on?" checked":""}${S.canWrite?"":" disabled"}> Activa</label></div></div>`).join("")}</div></div>`}).join("");
+  $("srcs").querySelectorAll("input[data-src]").forEach(i=>i.onchange=()=>toggleSource(i.dataset.src,i.checked));
+}
+function renderProfile(){
+  const p=S.profile;if(!p)return;
+  const w=p.weights||{};
+  $("weights").innerHTML=BD.map(([k,l])=>`<div class="w"><span>${l}</span><div class="bar"><i style="width:${(w[k]||0)/35*100}%"></i></div><b style="font-variant-numeric:tabular-nums">${w[k]||0}</b></div>`).join("");
+  const sc=p.scoring||{};
+  $("rules").innerHTML=Object.entries(sc).map(([k,v])=>`<li><b>${esc(k[0].toUpperCase()+k.slice(1))}:</b> ${esc(v)}</li>`).join("");
+  if(document.activeElement&&["kwEs","kwEn","kwEx","rMin","rTgt"].includes(document.activeElement.id))return;
+  $("kwEs").value=(p.keywords&&p.keywords.es||[]).join("\n");
+  $("kwEn").value=(p.keywords&&p.keywords.en||[]).join("\n");
+  $("kwEx").value=(p.exclude||[]).join("\n");
+  $("rMin").value=p.minDailyRateUSD||"";$("rTgt").value=p.targetDailyRateUSD||"";
+  $("pSummary").textContent=p.summary||"";
+  $("pStrengths").innerHTML=(p.strengths||[]).map(x=>`<span class="tag cat">${esc(x)}</span>`).join("");
+}
+function renderScan(){
+  const m=S.scan||{};
+  $("scan").innerHTML=`<span>Escaneo web: <b>${fmtDate(m.lastRun)}</b></span><span>Escaneo Chrome: <b>${fmtDate(m.lastChromeRun)}</b></span>${m.lastNew!=null?`<span>Última pasada: <b>${esc(m.lastNew)}</b> nuevas</span>`:""}${m.schedule?`<span>${esc(m.schedule)}</span>`:""}`;
+}
+function renderAll(){renderStats();renderCats();renderList();renderBoard();renderSources();renderProfile();renderScan()}
+
+/* ---------- writes ---------- */
+let trackerBusy=Promise.resolve();
+function setStatus(id,status){
+  if(!S.uid){banner("Para guardar estados tenés que abrir la herramienta con tu sesión de claude.ai.");return}
+  S.tracker={...S.tracker,[id]:{status,updated:new Date().toISOString()}};
+  renderStats();renderBoard();if(S.f.status!=="all")renderList();
+  const body={items:S.tracker};
+  trackerBusy=trackerBusy.then(()=>S.db.doc("data/users/"+S.uid+"/tracker").set(body)).catch(e=>banner("No se pudo guardar el estado ("+(e&&e.code||"error")+"). Probá de nuevo."));
+}
+async function toggleSource(id,on){
+  S.sources=S.sources.map(s=>s.id===id?{...s,on}:s);renderSources();
+  try{await S.db.doc("config/sources").update({items:S.sources})}catch(e){banner("No se pudo guardar la fuente ("+(e&&e.code||"error")+").")}
+}
+$("pSave").onclick=async()=>{
+  const lines=id=>$(id).value.split("\n").map(x=>x.trim()).filter(Boolean);
+  const upd={keywords:{es:lines("kwEs"),en:lines("kwEn")},exclude:lines("kwEx"),minDailyRateUSD:+$("rMin").value||0,targetDailyRateUSD:+$("rTgt").value||0};
+  $("pStatus").textContent="Guardando…";
+  try{await S.db.doc("config/profile").update(upd);$("pStatus").textContent="Guardado. El próximo escaneo usa estos cambios."}catch(e){$("pStatus").textContent="No se pudo guardar ("+(e&&e.code||"error")+")."}
+};
+
+/* ---------- análisis manual con Claude ---------- */
+function analysisPrompt(url,text){
+  const p=S.profile||{};
+  return `Sos un analista de carrera para consultorías internacionales. Evaluá este aviso para el candidato con la rúbrica dada. Respondé SOLO un objeto JSON válido, sin texto extra.
+
+PERFIL DEL CANDIDATO:
+${p.summary||""}
+Fortalezas: ${(p.strengths||[]).join("; ")}
+Tarifa mínima USD ${p.minDailyRateUSD||450}/día, objetivo USD ${p.targetDailyRateUSD||650}/día.
+Trabaja hoy en IIPE UNESCO: si el contratante es ${(p.conflictOrgs||[]).join(", ")} agregá la alerta "Revisar incompatibilidad con IIPE".
+
+RÚBRICA (puntos máximos ${JSON.stringify(p.weights||{})}):
+${Object.entries(p.scoring||{}).map(([k,v])=>"- "+k+": "+v).join("\n")}
+Fecha de hoy: ${new Date().toISOString().slice(0,10)}.
+
+AVISO
+Link: ${url||"(sin link)"}
+Texto:
+${text.slice(0,15000)}
+
+Formato JSON:
+{"title":"","org":"","cat":"empleo|consultoria|investigacion|convocatoria|conferencia","location":"","modality":"","rate":"tarifa o nivel publicado, o vacío","lang":"","deadline":"YYYY-MM-DD o null","breakdown":{"tema":0,"nivel":0,"region":0,"modalidad":0,"pago":0,"plazo":0},"score":0,"flags":["alertas cortas"],"reasons":"2 frases: por qué encaja o no","summary":"1 frase con el objeto del trabajo","suggestedRate":"tarifa diaria sugerida en USD y nivel ONU equivalente, con una frase de justificación","pitch":"borrador de 5-7 líneas en el idioma del aviso para la carta o mail de presentación, con 2-3 logros concretos del perfil","gaps":["requisitos que el perfil no muestra claramente"]}`;
+}
+$("mGo").onclick=async()=>{
+  const url=$("mUrl").value.trim(),text=$("mText").value.trim();
+  if(!text){$("mStatus").textContent="Pegá el texto del aviso para poder analizarlo.";return}
+  if(!S.sample){$("mStatus").textContent="El análisis con Claude no está disponible en esta vista.";return}
+  $("mGo").disabled=true;$("mSave").disabled=true;$("mStatus").textContent="Claude está leyendo el aviso…";$("mOut").hidden=true;
+  try{
+    let r;
+    try{r=await S.sample.json(analysisPrompt(url,text),{modelTier:"default"})}
+    catch(e){if(e&&e.code)throw e;const t=await S.sample(analysisPrompt(url,text));r=JSON.parse(t.text.replace(/^[^{]*/,"").replace(/[^}]*$/,""))}
+    const sum=Object.values(r.breakdown||{}).reduce((a,b)=>a+(+b||0),0);
+    r.score=Math.max(0,Math.min(100,Math.round(sum||r.score||0)));
+    r.url=url;S.draft=r;
+    $("mOut").innerHTML=`<div class="list">${oppHTML({...r,id:"draft",foundAt:new Date().toISOString(),source:"manual"})}</div>
+      <label class="f">Tarifa sugerida</label><div class="pre">${esc(r.suggestedRate||"—")}</div>
+      ${(r.gaps||[]).length?`<label class="f">Lo que conviene reforzar</label><div class="pre">${esc(r.gaps.join("\n"))}</div>`:""}
+      <label class="f">Borrador de presentación</label><div class="pre" id="pitch">${esc(r.pitch||"")}</div>
+      <button class="btn ghost" id="copyPitch" style="margin-top:8px">Copiar borrador</button>`;
+    $("mOut").hidden=false;$("mOut").querySelector("select")?.remove();
+    $("copyPitch").onclick=async()=>{try{await navigator.clipboard.writeText(r.pitch||"");$("copyPitch").textContent="Copiado"}catch(e){$("copyPitch").textContent="Seleccioná el texto y copialo"}};
+    $("mSave").disabled=!S.db;$("mStatus").textContent="";
+  }catch(e){
+    $("mStatus").textContent=e&&e.code==="rate_limited"?"Claude está ocupado. Esperá un momento y probá de nuevo.":e&&e.code==="not_granted"?"El análisis con Claude no está habilitado para esta vista.":"No se pudo analizar el aviso. Revisá el texto y probá otra vez.";
+  }finally{$("mGo").disabled=false}
+};
+$("mSave").onclick=async()=>{
+  const r=S.draft;if(!r)return;
+  const id=hash(r.url||r.title+r.org);
+  const doc={id,title:r.title||"Sin título",org:r.org||"",cat:r.cat||"consultoria",url:r.url||"",source:"Manual",location:r.location||"",modality:r.modality||"",rate:r.rate||"",lang:r.lang||"",deadline:r.deadline||null,score:r.score,breakdown:r.breakdown||{},flags:r.flags||[],reasons:r.reasons||"",summary:r.summary||"",foundAt:new Date().toISOString(),addedBy:"manual"};
+  $("mSave").disabled=true;
+  try{await S.db.doc("opps/"+id).set(doc);setStatus(id,"interesa");$("mStatus").textContent="Guardada en el radar como «Me interesa».";S.draft=null}
+  catch(e){$("mStatus").textContent="No se pudo guardar ("+(e&&e.code||"error")+").";$("mSave").disabled=false}
+};
+
+/* ---------- filtros ---------- */
+$("q").oninput=e=>{S.f.q=e.target.value;renderList()};
+$("sort").onchange=e=>{S.f.sort=e.target.value;renderList()};
+$("prio").onchange=e=>{S.f.prio=e.target.value;renderList()};
+$("fstatus").value=S.f.status;
+$("fstatus").onchange=e=>{S.f.status=e.target.value;renderList()};
+$("closed").onchange=e=>{S.f.closed=e.target.checked;renderList()};
+
+/* ---------- init ---------- */
+route();renderAll();
+async function init(){
+  if(!window.claude||!window.claude.use){renderList();return}
+  const [db,user,sample]=await Promise.all([claude.use("db"),claude.use("user"),claude.use("sample")]);
+  S.db=db;S.sample=sample;
+  if(!db){renderAll();return}
+  try{S.uid=user?await user.id():null}catch(e){S.uid=null}
+  try{if(user&&user.can){const c=await user.can("data.write");if(c===false)S.canWrite=false}}catch(e){}
+  const timer=setTimeout(()=>banner("La base de datos todavía no responde; lo que ves puede estar desactualizado."),10000);
+  const done=()=>{clearTimeout(timer);banner("")};
+  const err=e=>{clearTimeout(timer);if(e&&e.code!=="revoked")banner("Se cortó la conexión con la base de datos. Recargá la página.")};
+  db.collection("opps").onSnapshot(s=>{S.opps=s.docs.map(d=>({id:d.id,...d.data()}));if(!s.metadata.fromCache)done();renderAll()},err);
+  db.doc("config/sources").onSnapshot(s=>{S.sources=(s.exists&&s.data().items)||[];renderSources()},err);
+  db.doc("config/profile").onSnapshot(s=>{S.profile=s.exists?s.data():null;renderProfile();renderSources()},err);
+  db.doc("meta/scan").onSnapshot(s=>{S.scan=s.exists?s.data():null;renderScan()},err);
+  if(S.uid)db.doc("data/users/"+S.uid+"/tracker").onSnapshot(s=>{S.tracker=(s.exists&&s.data().items)||{};renderStats();renderBoard();renderList()},()=>{});
+}
+init();
+})();
+</script>
+</body>
+</html>
